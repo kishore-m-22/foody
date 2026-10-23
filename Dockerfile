@@ -1,4 +1,4 @@
-# Stage 1: Build Java classes
+# Stage 1: Build Java classes using Eclipse Temurin Java 17
 FROM eclipse-temurin:17-jdk-jammy AS builder
 
 WORKDIR /app
@@ -6,18 +6,19 @@ WORKDIR /app
 # Copy the entire project repository
 COPY . .
 
-# Debug: List out where java files are located
-ECHO "Searching for Java files..."
-RUN find . -name "*.java" > sources.txt && cat sources.txt
+# Find all Java files and list them for debugging
+RUN echo "Searching for Java files..." && \
+    find . -name "*.java" > sources.txt && \
+    cat sources.txt
 
-# Compile Java source files into /app/classes (checking both src and lib paths)
+# Compile Java source files into /app/classes using available JAR libraries
 RUN mkdir -p /app/classes && \
     javac -cp "src/main/webapp/WEB-INF/lib/*:WebContent/WEB-INF/lib/*" -d /app/classes @sources.txt
 
 # Stage 2: Deploy to Tomcat 9
 FROM tomcat:9.0-jdk17
 
-# Remove Tomcat default root app
+# Remove Tomcat's default root app
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
 
 # Copy web assets (support both src/main/webapp and WebContent structures)
