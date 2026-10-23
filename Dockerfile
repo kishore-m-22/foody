@@ -1,5 +1,5 @@
-# Stage 1: Build Java classes using OpenJDK 17
-FROM openjdk:17-jdk-slim AS builder
+# Stage 1: Build Java classes using Eclipse Temurin OpenJDK 17
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
 WORKDIR /app
 
