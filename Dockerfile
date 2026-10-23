@@ -1,16 +1,18 @@
-# Stage 1: Build Java classes using Eclipse Temurin OpenJDK 17
+# Stage 1: Build Java classes
 FROM eclipse-temurin:17-jdk-jammy AS builder
 
 WORKDIR /app
 
-# Copy source files and libraries
-COPY src ./src
-COPY src/main/webapp/WEB-INF/lib /app/lib/
+# Copy the entire project repository
+COPY . .
 
-# Find all Java files and compile them into /app/classes
+# Debug: List out where java files are located
+ECHO "Searching for Java files..."
+RUN find . -name "*.java" > sources.txt && cat sources.txt
+
+# Compile Java source files into /app/classes (checking both src and lib paths)
 RUN mkdir -p /app/classes && \
-    find src -name "*.java" > sources.txt && \
-    javac -cp "/app/lib/*" -d /app/classes @sources.txt
+    javac -cp "src/main/webapp/WEB-INF/lib/*:WebContent/WEB-INF/lib/*" -d /app/classes @sources.txt
 
 # Stage 2: Deploy to Tomcat 9
 FROM tomcat:9.0-jdk17
@@ -18,10 +20,13 @@ FROM tomcat:9.0-jdk17
 # Remove Tomcat default root app
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
 
-# Copy web assets (JSPs, CSS, JS, images, WEB-INF) into ROOT webapp directory
-COPY src/main/webapp /usr/local/tomcat/webapps/ROOT
+# Copy web assets (support both src/main/webapp and WebContent structures)
+RUN if [ -d "src/main/webapp" ]; then cp -r src/main/webapp/. /usr/local/tomcat/webapps/ROOT/; \
+    elif [ -d "WebContent" ]; then cp -r WebContent/. /usr/local/tomcat/webapps/ROOT/; \
+    fi
 
 # Copy compiled class files into WEB-INF/classes
+RUN mkdir -p /usr/local/tomcat/webapps/ROOT/WEB-INF/classes
 COPY --from=builder /app/classes /usr/local/tomcat/webapps/ROOT/WEB-INF/classes
 
 EXPOSE 8080
