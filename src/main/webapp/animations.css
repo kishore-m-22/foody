@@ -1,0 +1,492 @@
+/* =========================================================
+   FOODYY — GLOBAL ANIMATION ENGINE
+   Laravel/Vue-quality motion system
+   ========================================================= */
+
+(function () {
+    "use strict";
+
+    /* =====================================================
+       0. LIFT THE js-reveal FLAG
+    ===================================================== */
+    document.documentElement.classList.add("js-enabled");
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        document.body.classList.add("js-reveal");
+
+
+        /* =================================================
+           1. SCROLL PROGRESS BAR
+        ================================================= */
+        initScrollProgress();
+
+
+        /* =================================================
+           2. SCROLL REVEAL (IntersectionObserver)
+        ================================================= */
+        initScrollReveal();
+
+
+        /* =================================================
+           3. BACK TO TOP BUTTON
+        ================================================= */
+        initBackToTop();
+
+
+        /* =================================================
+           4. STICKY HEADER MORPH
+        ================================================= */
+        initStickyHeader();
+
+
+        /* =================================================
+           5. CURSOR SPOTLIGHT (over .hero only)
+        ================================================= */
+        initCursorSpotlight();
+
+
+        /* =================================================
+           6. 3D CARD TILT
+        ================================================= */
+        initCardTilt();
+
+
+        /* =================================================
+           7. MAGNETIC BUTTONS
+        ================================================= */
+        initMagneticButtons();
+
+
+        /* =================================================
+           8. PARALLAX (elements with .parallax)
+        ================================================= */
+        initParallax();
+
+
+        /* =================================================
+           9. NUMBER COUNT-UP
+        ================================================= */
+        initCountUp();
+
+
+        /* =================================================
+           10. TEXT LETTER REVEAL
+        ================================================= */
+        initSplitText();
+
+
+        /* =================================================
+           11. PAGE TRANSITION ON LINK CLICK
+        ================================================= */
+        initPageTransition();
+
+
+        /* =================================================
+           12. TOAST HELPER (exposed globally)
+        ================================================= */
+        window.showToast = showToast;
+
+
+        /* =================================================
+           13. CONFETTI HELPER (exposed globally)
+        ================================================= */
+        window.burstConfetti = burstConfetti;
+
+    });
+
+
+    /* =====================================================
+       1. SCROLL PROGRESS BAR
+    ===================================================== */
+    function initScrollProgress() {
+
+        let bar = document.getElementById("scrollProgress");
+
+        if (!bar) {
+            bar = document.createElement("div");
+            bar.id = "scrollProgress";
+            bar.className = "scroll-progress";
+            document.body.appendChild(bar);
+        }
+
+        function update() {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const percent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+            bar.style.width = percent + "%";
+        }
+
+        window.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update);
+        update();
+    }
+
+
+    /* =====================================================
+       2. SCROLL REVEAL
+    ===================================================== */
+    function initScrollReveal() {
+
+        const targets = document.querySelectorAll(
+            ".reveal, .reveal-left, .reveal-right, .reveal-scale"
+        );
+
+        if (!targets.length) return;
+
+        if (!("IntersectionObserver" in window)) {
+            targets.forEach(function (el) { el.classList.add("visible"); });
+            return;
+        }
+
+        const observer = new IntersectionObserver(function (entries, obs) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add("visible");
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.06,
+            rootMargin: "0px 0px -40px 0px"
+        });
+
+        targets.forEach(function (el, i) {
+            if (!el.style.transitionDelay) {
+                el.style.transitionDelay = (i % 4) * 0.07 + "s";
+            }
+            observer.observe(el);
+        });
+
+        /* Safety net: force-reveal everything after 2.5s */
+        setTimeout(function () {
+            document
+                .querySelectorAll(".reveal:not(.visible), .reveal-left:not(.visible), .reveal-right:not(.visible), .reveal-scale:not(.visible)")
+                .forEach(function (el) { el.classList.add("visible"); });
+        }, 2500);
+    }
+
+
+    /* =====================================================
+       3. BACK TO TOP BUTTON
+    ===================================================== */
+    function initBackToTop() {
+
+        let btn = document.getElementById("backToTop");
+
+        if (!btn) {
+            btn = document.createElement("button");
+            btn.id = "backToTop";
+            btn.className = "back-to-top";
+            btn.setAttribute("aria-label", "Back to top");
+            btn.innerHTML = "↑";
+            document.body.appendChild(btn);
+        }
+
+        window.addEventListener("scroll", function () {
+            if (window.scrollY > 400) {
+                btn.classList.add("show");
+            } else {
+                btn.classList.remove("show");
+            }
+        }, { passive: true });
+
+        btn.addEventListener("click", function () {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    }
+
+
+    /* =====================================================
+       4. STICKY HEADER MORPH
+    ===================================================== */
+    function initStickyHeader() {
+
+        const header =
+            document.querySelector(".foody-header") ||
+            document.querySelector("header");
+
+        if (!header) return;
+
+        function onScroll() {
+            if (window.scrollY > 12) {
+                header.classList.add("scrolled");
+            } else {
+                header.classList.remove("scrolled");
+            }
+        }
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+    }
+
+
+    /* =====================================================
+       5. CURSOR SPOTLIGHT (over hero)
+    ===================================================== */
+    function initCursorSpotlight() {
+
+        const hero = document.querySelector(".hero");
+
+        if (!hero) return;
+
+        if (window.matchMedia("(pointer: coarse)").matches) return;
+
+        const spot = document.createElement("div");
+        spot.className = "cursor-spotlight";
+        document.body.appendChild(spot);
+
+        let raf = null;
+        let targetX = 0;
+        let targetY = 0;
+        let currentX = 0;
+        let currentY = 0;
+
+        function loop() {
+            currentX += (targetX - currentX) * 0.12;
+            currentY += (targetY - currentY) * 0.12;
+
+            spot.style.left = currentX + "px";
+            spot.style.top = currentY + "px";
+
+            raf = requestAnimationFrame(loop);
+        }
+
+        hero.addEventListener("mouseenter", function () {
+            spot.classList.add("active");
+            if (!raf) loop();
+        });
+
+        hero.addEventListener("mouseleave", function () {
+            spot.classList.remove("active");
+        });
+
+        hero.addEventListener("mousemove", function (e) {
+            targetX = e.clientX;
+            targetY = e.clientY;
+        });
+    }
+
+
+    /* =====================================================
+       6. 3D CARD TILT
+    ===================================================== */
+    function initCardTilt() {
+
+        const cards = document.querySelectorAll(
+            ".tilt-card, .restaurant-card, .menu-card"
+        );
+
+        if (!cards.length) return;
+
+        if (window.matchMedia("(pointer: coarse)").matches) return;
+
+        cards.forEach(function (card) {
+
+            card.addEventListener("mousemove", function (e) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+
+                const rotateY = ((x - cx) / cx) * 6;
+                const rotateX = -((y - cy) / cy) * 6;
+
+                card.style.transform =
+                    "perspective(900px) rotateX(" +
+                    rotateX +
+                    "deg) rotateY(" +
+                    rotateY +
+                    "deg) translateY(-8px) scale(1.02)";
+            });
+
+            card.addEventListener("mouseleave", function () {
+                card.style.transform = "";
+            });
+        });
+    }
+
+
+    /* =====================================================
+       7. MAGNETIC BUTTONS
+    ===================================================== */
+    function initMagneticButtons() {
+
+        const magnets = document.querySelectorAll(
+            ".magnetic, .menu-btn, .checkout-button, .add-btn, .register-btn"
+        );
+
+        if (!magnets.length) return;
+
+        if (window.matchMedia("(pointer: coarse)").matches) return;
+
+        magnets.forEach(function (el) {
+
+            el.addEventListener("mousemove", function (e) {
+                const rect = el.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+
+                el.style.transform =
+                    "translate(" +
+                    x * 0.22 +
+                    "px, " +
+                    y * 0.32 +
+                    "px)";
+            });
+
+            el.addEventListener("mouseleave", function () {
+                el.style.transform = "";
+            });
+        });
+    }
+
+
+    /* =====================================================
+       8. PARALLAX
+    ===================================================== */
+    function initParallax() {
+
+        const items = document.querySelectorAll(".parallax");
+
+        if (!items.length) return;
+
+        let ticking = false;
+
+        function update() {
+
+            const scrollY = window.scrollY;
+
+            items.forEach(function (el) {
+                const speed = parseFloat(el.dataset.speed || "0.3");
+                const rect = el.getBoundingClientRect();
+                const offset = rect.top + scrollY - window.innerHeight / 2;
+                const y = -offset * speed;
+
+                el.style.transform = "translate3d(0, " + y + "px, 0)";
+            });
+
+            ticking = false;
+        }
+
+        window.addEventListener("scroll", function () {
+            if (!ticking) {
+                requestAnimationFrame(update);
+                ticking = true;
+            }
+        }, { passive: true });
+
+        update();
+    }
+
+
+    /* =====================================================
+       9. NUMBER COUNT-UP
+    ===================================================== */
+    function initCountUp() {
+
+        const counters = document.querySelectorAll(".count-up");
+
+        if (!counters.length) return;
+
+        if (!("IntersectionObserver" in window)) {
+            counters.forEach(function (el) {
+                el.textContent = el.dataset.target || el.textContent;
+            });
+            return;
+        }
+
+        const observer = new IntersectionObserver(function (entries, obs) {
+
+            entries.forEach(function (entry) {
+
+                if (!entry.isIntersecting) return;
+
+                const el = entry.target;
+
+                const target = parseFloat(el.dataset.target || el.textContent);
+                const duration = parseInt(el.dataset.duration || "1400", 10);
+                const prefix = el.dataset.prefix || "";
+                const suffix = el.dataset.suffix || "";
+                const decimals = parseInt(el.dataset.decimals || "0", 10);
+
+                const start = performance.now();
+
+                function step(now) {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const value = (target * eased).toFixed(decimals);
+
+                    el.textContent = prefix + value + suffix;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        el.textContent = prefix + target.toFixed(decimals) + suffix;
+                    }
+                }
+
+                requestAnimationFrame(step);
+                obs.unobserve(el);
+            });
+
+        }, { threshold: 0.3 });
+
+        counters.forEach(function (el) { observer.observe(el); });
+    }
+
+
+    /* =====================================================
+       10. TEXT LETTER REVEAL
+    ===================================================== */
+    function initSplitText() {
+
+        const targets = document.querySelectorAll(".split-text");
+
+        if (!targets.length) return;
+
+        targets.forEach(function (el) {
+
+            const text = el.textContent.trim();
+            el.textContent = "";
+
+            text.split("").forEach(function (ch, i) {
+
+                const span = document.createElement("span");
+                span.textContent = ch === " " ? "\u00A0" : ch;
+                span.style.animationDelay = (i * 0.035) + "s";
+
+                el.appendChild(span);
+            });
+        });
+    }
+
+
+    /* =====================================================
+       11. PAGE TRANSITION ON LINK CLICK
+    ===================================================== */
+    function initPageTransition() {
+
+        const links = document.querySelectorAll(
+            "a[href]:not([target='_blank']):not([href^='#']):not([href^='javascript']):not([href^='mailto']):not([href^='tel'])"
+        );
+
+        links.forEach(function (link) {
+
+            link.addEventListener("click", function (e) {
+
+                const href = link.getAttribute("href");
+
+                if (!href || href.startsWith("#")) return;
+
+                /* Skip if it's a form button (they don't use a[href]) */
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+                e.preventDefault();
+
+                document.body.classList.add("page-exit");
+
+                setTimeout(function () {
+                    window.location.href = href;
+                }, 
